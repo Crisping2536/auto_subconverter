@@ -1,0 +1,30 @@
+name: Fly Deploy
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Download latest release of subconverter
+        run: git clone https://github.com/tindy2013/subconverter
+      - name: Apply APP name in fly.toml
+        run: sed -i 's/$FLY_APP_NAME/'"$FLY_APP_NAME"'/g' fly.toml
+        env:
+          FLY_APP_NAME: ${{ secrets.FLY_APP_NAME }}
+      - name: Pre deploy
+        run: |
+          cp fly.toml subconverter/fly.toml
+          cd subconverter
+          git checkout master
+      - name: Deploy
+        run: |
+          cd subconverter
+          flyctl deploy --remote-only --dockerfile scripts/Dockerfile
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
